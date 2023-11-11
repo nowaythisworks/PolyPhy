@@ -82,12 +82,20 @@ class PPConfig:
     N_DATA_DEFAULT = 1000
     N_AGENTS_DEFAULT = 1000000
     DOMAIN_SIZE_DEFAULT = 100.0
-    TRACE_RESOLUTION_MAX = 512
+    TRACE_RESOLUTION_MAX = 1024
     DEPOSIT_DOWNSCALING_FACTOR = 1
     MAX_DEPOSIT = 10.0
     DOMAIN_MARGIN = 0.05
     RAY_EPSILON = 1.0e-3
-    VIS_RESOLUTION = (1440, 900)
+    VIS_RESOLUTION = (3840, 2160)
+
+    # Renderer Parameters
+    max_bounces = 6
+    num_samples = 3
+    exposure = 1.0
+    extinction = 0.5
+    emission = 10.0
+    reset = False
 
     # Input files
     input_file = ''

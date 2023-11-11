@@ -37,6 +37,42 @@ class GuiHelper:
             'Deposit vis', math.log(ppConfig.deposit_vis, 10.0), -3.0, 3.0))
         ppConfig.trace_vis = math.pow(10.0, window.GUI.slider_float(
             'Trace vis', math.log(ppConfig.trace_vis, 10.0), -3.0, 3.0))
+        
+
+
+        window.GUI.text("Renderer Parameters:")
+
+        new_max_bounces = window.GUI.slider_int(
+            'Max bounces', ppConfig.max_bounces, 1, 16)
+        if (ppConfig.max_bounces != new_max_bounces):
+            ppConfig.max_bounces = new_max_bounces
+            ppConfig.reset = True
+
+        new_num_samples = window.GUI.slider_int(
+            'Num samples', ppConfig.num_samples, 1, 16)
+        if (ppConfig.num_samples != new_num_samples):
+            ppConfig.num_samples = new_num_samples
+            ppConfig.reset = True
+            
+        new_exposure = window.GUI.slider_float(
+            'Exposure', ppConfig.exposure, 1.0, 10.0)
+        if (ppConfig.exposure != new_exposure):
+            ppConfig.exposure = new_exposure
+            ppConfig.reset = True
+
+        new_extinction = window.GUI.slider_float(
+            'Extinction', ppConfig.extinction, 0.0, 1.0)
+        if (ppConfig.extinction != new_extinction):
+            ppConfig.extinction = new_extinction
+            ppConfig.reset = True
+
+        new_emission = window.GUI.slider_float(
+            'Emission', ppConfig.emission, 0.0, 64.0)
+        if (ppConfig.emission != new_emission):
+            ppConfig.emission = new_emission
+            ppConfig.reset = True
+        
+
 
         window.GUI.text("Distance distribution:")
         if window.GUI.checkbox("Constant", ppConfig.distance_sampling_distribution == ppConfig.EnumDistanceSamplingDistribution.CONSTANT):
@@ -70,6 +106,7 @@ class GuiHelper:
 
         window.GUI.text("Misc controls:")
         self.do_simulate = window.GUI.checkbox("Run simulation", self.do_simulate)
+        self.do_render = window.GUI.checkbox("Run renderer", self.do_render)
         self.do_export = self.do_export | window.GUI.button('Export fit')
         self.do_screenshot = self.do_screenshot | window.GUI.button('Screenshot')
         self.do_quit = self.do_quit | window.GUI.button('Quit')

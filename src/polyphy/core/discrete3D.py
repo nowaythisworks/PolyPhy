@@ -19,7 +19,7 @@ class PPConfig_3DDiscrete(PPConfig):
 
     def register_data(self, ppData):
         self.ppData = ppData
-        self.TRACE_RESOLUTION_MAX = 512
+        self.TRACE_RESOLUTION_MAX = 800
         self.DATA_TO_AGENTS_RATIO = PPTypes.FLOAT_CPU(
             ppData.N_DATA) / PPTypes.FLOAT_CPU(ppData.N_AGENTS)
         self.DOMAIN_SIZE_MAX = np.max(
@@ -123,6 +123,12 @@ class PPInternalData_3DDiscrete(PPInternalData):
         # Initialize GPU fields
         self.data_field.from_numpy(self.ppConfig.ppData.data)
         self.agents_field.from_numpy(self.agents)
+
+        #  FOR NOW ...
+        self.colormap_depth = 123
+        self.colormap = ti.field(float, shape=[self.colormap_depth, 1, 3])
+        self.colormap.from_numpy(ti.tools.imread('img/colormap.png'))
+
         ppKernels.zero_field(self.deposit_field)
         ppKernels.zero_field(self.trace_field)
         ppKernels.zero_field(self.vis_field)
@@ -212,6 +218,7 @@ class PPSimulation_3DDiscrete(PPSimulation):
         self.do_screenshot = False
         self.do_quit = False
         self.do_simulate = True
+        self.do_render = True
         self.hide_UI = False
 
         camera_distance = 3.0 * ppConfig.DOMAIN_SIZE_MAX
@@ -232,8 +239,10 @@ class PPSimulation_3DDiscrete(PPSimulation):
                 canvas = window.get_canvas()
 
             curr_iteration = 0
+            accumulate_count = 0
             # Main simulation and rendering loop
             while window.running if 'window' in locals() else True:
+                should_accumulate = True
                 if batch_mode is True:
                     # Handle progress monitor
                     curr_iteration += 1
@@ -272,6 +281,7 @@ class PPSimulation_3DDiscrete(PPSimulation):
                             camera_polar = np.min(
                                 [np.max([1.0e-2, camera_polar]),
                                  np.pi-1.0e-2])
+                            should_accumulate = False
                     else:
                         last_RMB = [-1.0, -1.0]
 
@@ -286,11 +296,17 @@ class PPSimulation_3DDiscrete(PPSimulation):
                                 5.0 * ppConfig.DOMAIN_SIZE_MAX * delta_MMB[1])
                             camera_distance = np.max(
                                 [camera_distance, 0.85 * ppConfig.DOMAIN_SIZE_MAX])
+                            should_accumulate = False
                     else:
                         last_MMB = [-1.0, -1.0]
 
                     if not self.hide_UI:
                         self.__drawGUI__(window, ppConfig)
+
+                    if (should_accumulate == True):
+                        accumulate_count += 1
+                    else:
+                        accumulate_count = 0
 
                 # Main simulation sequence
                 if self.do_simulate:
@@ -335,25 +351,89 @@ class PPSimulation_3DDiscrete(PPSimulation):
                     self.current_deposit_index = 1 - self.current_deposit_index
 
                 # Render visualization
-                ppInternalData.ppKernels.render_visualization_3D_raymarched(
-                    ppConfig.trace_vis,
-                    ppConfig.deposit_vis,
-                    camera_distance,
-                    camera_polar,
-                    camera_azimuth,
-                    ppConfig.n_ray_steps,
-                    self.current_deposit_index,
-                    ppConfig.TRACE_RESOLUTION,
-                    ppConfig.DEPOSIT_RESOLUTION,
-                    ppConfig.VIS_RESOLUTION,
-                    ppConfig.DOMAIN_SIZE_MAX,
-                    ppConfig.ppData.DOMAIN_MIN,
-                    ppConfig.ppData.DOMAIN_MAX,
-                    ppConfig.ppData.DOMAIN_CENTER,
-                    ppConfig.RAY_EPSILON,
-                    ppInternalData.deposit_field,
-                    ppInternalData.trace_field,
-                    ppInternalData.vis_field)
+                # ppInternalData.ppKernels.render_visualization_3D_raymarched(
+                #     ppConfig.trace_vis,
+                #     ppConfig.deposit_vis,
+                #     camera_distance,
+                #     camera_polar,
+                #     camera_azimuth,
+                #     ppConfig.n_ray_steps,
+                #     self.current_deposit_index,
+                #     ppConfig.TRACE_RESOLUTION,
+                #     ppConfig.DEPOSIT_RESOLUTION,
+                #     ppConfig.VIS_RESOLUTION,
+                #     ppConfig.DOMAIN_SIZE_MAX,
+                #     ppConfig.ppData.DOMAIN_MIN,
+                #     ppConfig.ppData.DOMAIN_MAX,
+                #     ppConfig.ppData.DOMAIN_CENTER,
+                #     ppConfig.RAY_EPSILON,
+                #     ppInternalData.deposit_field,
+                #     ppInternalData.trace_field,
+                #     ppInternalData.vis_field)
+                
+                if (self.do_render):
+                    if (ppConfig.reset == True):
+                        ppInternalData.ppKernels.zero_field(ppInternalData.vis_field)
+                        ppConfig.reset = False
+
+                    if (should_accumulate == False):
+                        ppInternalData.ppKernels.render_visualization_3D_raymarched(
+                            ppConfig.trace_vis,
+                            ppConfig.deposit_vis,
+                            camera_distance,
+                            camera_polar,
+                            camera_azimuth,
+                            ppConfig.n_ray_steps,
+                            self.current_deposit_index,
+                            ppConfig.TRACE_RESOLUTION,
+                            ppConfig.DEPOSIT_RESOLUTION,
+                            ppConfig.VIS_RESOLUTION,
+                            ppConfig.DOMAIN_SIZE_MAX,
+                            ppConfig.ppData.DOMAIN_MIN,
+                            ppConfig.ppData.DOMAIN_MAX,
+                            ppConfig.ppData.DOMAIN_CENTER,
+                            ppConfig.RAY_EPSILON,
+                            ppInternalData.deposit_field,
+                            ppInternalData.trace_field,
+                            ppInternalData.vis_field)
+                    else:
+                        ppInternalData.ppKernels.render_visualization_3D_pathtraced(
+                            camera_distance,
+                            camera_polar,
+                            camera_azimuth,
+                            self.current_deposit_index,
+                            should_accumulate, # should accumulate
+                            accumulate_count, # accumulation count
+                            ppConfig.exposure, # throughput multiplier
+                            ppConfig.num_samples, # num samples
+                            ppConfig.max_bounces, # max bounces
+                            ppConfig.deposit_vis,
+                            ppConfig.trace_vis,
+                            ppConfig.TRACE_RESOLUTION,
+                            ppConfig.DEPOSIT_RESOLUTION,
+                            ppConfig.VIS_RESOLUTION,
+                            ppConfig.DOMAIN_SIZE_MAX,
+                            ppConfig.ppData.DOMAIN_MIN,
+                            ppConfig.ppData.DOMAIN_MAX,
+                            ppConfig.ppData.DOMAIN_CENTER,
+                            ppConfig.RAY_EPSILON,
+                            ppInternalData.deposit_field,
+                            ppInternalData.trace_field,
+                            0.9, # scattering anisotropy
+                            ppConfig.emission, # sigma_e
+                            0.5, # sigma_a
+                            0.0, # sigma_s
+                            ppConfig.extinction, # sigma_t\
+                            2.89, # trace_max
+                            False, # debug_mode
+                            ppInternalData.vis_field,
+                            ppInternalData.colormap_depth,
+                            ppInternalData.colormap)
+                else:
+                    ppInternalData.ppKernels.zero_field(ppInternalData.vis_field)
+
+
+
 
                 if batch_mode is False:
                     canvas.set_image(ppInternalData.vis_field)
