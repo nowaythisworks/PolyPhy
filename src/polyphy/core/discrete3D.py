@@ -350,27 +350,6 @@ class PPSimulation_3DDiscrete(PPSimulation):
                         ppConfig.trace_attenuation, ppInternalData.trace_field)
                     self.current_deposit_index = 1 - self.current_deposit_index
 
-                # Render visualization
-                # ppInternalData.ppKernels.render_visualization_3D_raymarched(
-                #     ppConfig.trace_vis,
-                #     ppConfig.deposit_vis,
-                #     camera_distance,
-                #     camera_polar,
-                #     camera_azimuth,
-                #     ppConfig.n_ray_steps,
-                #     self.current_deposit_index,
-                #     ppConfig.TRACE_RESOLUTION,
-                #     ppConfig.DEPOSIT_RESOLUTION,
-                #     ppConfig.VIS_RESOLUTION,
-                #     ppConfig.DOMAIN_SIZE_MAX,
-                #     ppConfig.ppData.DOMAIN_MIN,
-                #     ppConfig.ppData.DOMAIN_MAX,
-                #     ppConfig.ppData.DOMAIN_CENTER,
-                #     ppConfig.RAY_EPSILON,
-                #     ppInternalData.deposit_field,
-                #     ppInternalData.trace_field,
-                #     ppInternalData.vis_field)
-                
                 if (self.do_render):
                     if (ppConfig.reset == True):
                         ppInternalData.ppKernels.zero_field(ppInternalData.vis_field)
@@ -395,7 +374,8 @@ class PPSimulation_3DDiscrete(PPSimulation):
                             ppConfig.RAY_EPSILON,
                             ppInternalData.deposit_field,
                             ppInternalData.trace_field,
-                            ppInternalData.vis_field)
+                            ppInternalData.vis_field,
+                            ppInternalData.colormap)
                     else:
                         ppInternalData.ppKernels.render_visualization_3D_pathtraced(
                             camera_distance,
@@ -427,7 +407,6 @@ class PPSimulation_3DDiscrete(PPSimulation):
                             2.89, # trace_max
                             False, # debug_mode
                             ppInternalData.vis_field,
-                            ppInternalData.colormap_depth,
                             ppInternalData.colormap)
                 else:
                     ppInternalData.ppKernels.zero_field(ppInternalData.vis_field)

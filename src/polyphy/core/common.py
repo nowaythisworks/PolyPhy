@@ -110,8 +110,8 @@ class PPConfig:
     trace_attenuation = 0.96
     data_deposit = -1.0
     agent_deposit = -1.0
-    deposit_vis = 0.1
-    trace_vis = 1.0
+    deposit_vis = 0.001
+    trace_vis = 0.228
     n_ray_steps = 50.0
 
     @staticmethod

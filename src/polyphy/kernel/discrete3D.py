@@ -262,73 +262,76 @@ class PPKernels_3DDiscrete(PPKernels):
         RAY_EPSILON: PPTypes.FLOAT_GPU,
         deposit_field: ti.template(),
         trace_field: ti.template(),
-            vis_field: ti.template()):
-        n_steps = ti.cast(n_ray_steps_f, PPTypes.INT_GPU)
-        aspect_ratio = ti.cast(
-            VIS_RESOLUTION[0],
-            PPTypes.FLOAT_GPU) / ti.cast(
-                VIS_RESOLUTION[1],
-                PPTypes.FLOAT_GPU)
-        screen_distance = DOMAIN_SIZE_MAX
-        camera_offset = camera_distance * PPTypes.VEC3f(
-            ti.cos(camera_azimuth) * ti.sin(camera_polar),
-            ti.sin(camera_azimuth) * ti.sin(camera_polar),
-            ti.cos(camera_polar))
-        camera_pos = DOMAIN_CENTER + camera_offset
-        cam_Z = timath.normalize(-camera_offset)
-        cam_Y = PPTypes.VEC3f(0.0, 0.0, 1.0)
-        cam_X = timath.normalize(timath.cross(cam_Z, cam_Y))
-        cam_Y = timath.normalize(timath.cross(cam_X, cam_Z))
+        vis_field: ti.template(),
+        colormap: ti.template()):
 
-        for x, y in ti.ndrange(VIS_RESOLUTION[0], VIS_RESOLUTION[1]):
-            # Compute x and y ray directions in neutral camera position
-            rx = DOMAIN_SIZE_MAX * (ti.cast(x, PPTypes.FLOAT_GPU) / ti.cast(VIS_RESOLUTION[0], PPTypes.FLOAT_GPU)) - 0.5 * DOMAIN_SIZE_MAX
-            ry = DOMAIN_SIZE_MAX * (ti.cast(y, PPTypes.FLOAT_GPU) / ti.cast(VIS_RESOLUTION[1], PPTypes.FLOAT_GPU)) - 0.5 * DOMAIN_SIZE_MAX
-            ry /= aspect_ratio
+            n_steps = ti.cast(n_ray_steps_f, PPTypes.INT_GPU)
+            aspect_ratio = ti.cast(
+                VIS_RESOLUTION[0],
+                PPTypes.FLOAT_GPU) / ti.cast(
+                    VIS_RESOLUTION[1],
+                    PPTypes.FLOAT_GPU)
+            screen_distance = DOMAIN_SIZE_MAX
+            camera_offset = camera_distance * PPTypes.VEC3f(
+                ti.cos(camera_azimuth) * ti.sin(camera_polar),
+                ti.sin(camera_azimuth) * ti.sin(camera_polar),
+                ti.cos(camera_polar))
+            camera_pos = DOMAIN_CENTER + camera_offset
+            cam_Z = timath.normalize(-camera_offset)
+            cam_Y = PPTypes.VEC3f(0.0, 0.0, 1.0)
+            cam_X = timath.normalize(timath.cross(cam_Z, cam_Y))
+            cam_Y = timath.normalize(timath.cross(cam_X, cam_Z))
 
-            # Initialize ray origin and direction
-            screen_pos = camera_pos + rx * cam_X + ry * cam_Y + screen_distance * cam_Z
-            ray_dir = timath.normalize(screen_pos - camera_pos)
+            for x, y in ti.ndrange(VIS_RESOLUTION[0], VIS_RESOLUTION[1]):
+                # Compute x and y ray directions in neutral camera position
+                rx = DOMAIN_SIZE_MAX * (ti.cast(x, PPTypes.FLOAT_GPU) / ti.cast(VIS_RESOLUTION[0], PPTypes.FLOAT_GPU)) - 0.5 * DOMAIN_SIZE_MAX
+                ry = DOMAIN_SIZE_MAX * (ti.cast(y, PPTypes.FLOAT_GPU) / ti.cast(VIS_RESOLUTION[1], PPTypes.FLOAT_GPU)) - 0.5 * DOMAIN_SIZE_MAX
+                ry /= aspect_ratio
 
-            # Get intersection of the ray with the volume AABB
-            t = self.ray_AABB_intersection(
-                camera_pos,
-                ray_dir,
-                PPTypes.VEC3f(DOMAIN_MIN),
-                PPTypes.VEC3f(DOMAIN_MAX))
-            ray_L = PPTypes.VEC3f(0.0, 0.0, 0.0)
-            ray_delta = 1.71 * DOMAIN_SIZE_MAX / n_ray_steps_f
+                # Initialize ray origin and direction
+                screen_pos = camera_pos + rx * cam_X + ry * cam_Y + screen_distance * cam_Z
+                ray_dir = timath.normalize(screen_pos - camera_pos)
 
-            # Check if we intersect the volume AABB at all
-            if t[1] >= 0.0:
-                t[0] += RAY_EPSILON
-                t[1] -= RAY_EPSILON
-                t_current = t[0] + ti.random(dtype=PPTypes.FLOAT_GPU) * ray_delta
-                ray_pos = camera_pos + t_current * ray_dir
+                # Get intersection of the ray with the volume AABB
+                t = self.ray_AABB_intersection(
+                    camera_pos,
+                    ray_dir,
+                    PPTypes.VEC3f(DOMAIN_MIN),
+                    PPTypes.VEC3f(DOMAIN_MAX))
+                ray_L = PPTypes.VEC3f(0.0, 0.0, 0.0)
+                ray_delta = 1.71 * DOMAIN_SIZE_MAX / n_ray_steps_f
 
-                # Main integration loop
-                for i in ti.ndrange(n_steps):
-                    if t_current >= t[1]:
-                        break
-                    trace_val = trace_field[self.world_to_grid_3D(
-                        ray_pos,
-                        PPTypes.VEC3f(DOMAIN_MIN),
-                        PPTypes.VEC3f(DOMAIN_MAX),
-                        PPTypes.VEC3i(TRACE_RESOLUTION))][0]
-                    deposit_val = deposit_field[self.world_to_grid_3D(
-                        ray_pos,
-                        PPTypes.VEC3f(DOMAIN_MIN),
-                        PPTypes.VEC3f(DOMAIN_MAX),
-                        PPTypes.VEC3i(DEPOSIT_RESOLUTION))][current_deposit_index]
-                    ray_L += PPTypes.VEC3f(
-                        trace_vis * trace_val,
-                        deposit_vis * deposit_val,
-                        ti.pow(ti.log(1.0 + 0.2 * trace_vis * trace_val), 3.0)) / n_ray_steps_f
-                    ray_pos += ray_delta * ray_dir
-                    t_current += ray_delta
+                # Check if we intersect the volume AABB at all
+                if t[1] >= 0.0:
+                    t[0] += RAY_EPSILON
+                    t[1] -= RAY_EPSILON
+                    t_current = t[0] + ti.random(dtype=PPTypes.FLOAT_GPU) * ray_delta
+                    ray_pos = camera_pos + t_current * ray_dir
 
-            vis_field[x, y] = timath.pow(ray_L, 1.0/2.2)
-        return
+                    # Main integration loop
+                    for i in ti.ndrange(n_steps):
+                        if t_current >= t[1]:
+                            break
+                        trace_val = trace_field[self.world_to_grid_3D(
+                            ray_pos,
+                            PPTypes.VEC3f(DOMAIN_MIN),
+                            PPTypes.VEC3f(DOMAIN_MAX),
+                            PPTypes.VEC3i(TRACE_RESOLUTION))][0]
+                        deposit_val = deposit_field[self.world_to_grid_3D(
+                            ray_pos,
+                            PPTypes.VEC3f(DOMAIN_MIN),
+                            PPTypes.VEC3f(DOMAIN_MAX),
+                            PPTypes.VEC3i(DEPOSIT_RESOLUTION))][current_deposit_index]
+                        ray_L += PPTypes.VEC3f(
+                            trace_vis * trace_val,
+                            deposit_vis * deposit_val,
+                            ti.pow(ti.log(1.0 + 0.2 * trace_vis * trace_val), 3.0)) / n_ray_steps_f
+                        ray_pos += ray_delta * ray_dir
+                        t_current += ray_delta
+
+                # vis_field[x, y] = timath.pow(ray_L, 1.0/2.2)
+                vis_field[x, y] = (ray_L[0] * self.TexSamplePosition(ray_L[0], colormap, 50)) * 0.5
+            return
 
 
 
@@ -368,123 +371,123 @@ class PPKernels_3DDiscrete(PPKernels):
         trace_max: PPTypes.FLOAT_GPU,
         debug_mode: PPTypes.INT_GPU,
         vis_field: ti.template(),
-        colormap_resolution: PPTypes.FLOAT_GPU,
         colormap: ti.template()):
-        ## INITIAL CONSTANTS
-        # the aspect ratio of the image
-        aspect_ratio = ti.cast(VIS_RESOLUTION[0], PPTypes.FLOAT_GPU) / \
-            ti.cast(VIS_RESOLUTION[1], PPTypes.FLOAT_GPU)
-        screen_distance = DOMAIN_SIZE_MAX  # the distance of the screen from the camera
-        camera_offset = camera_distance * PPTypes.VEC3f(ti.cos(camera_azimuth) * ti.sin(camera_polar), ti.sin(camera_azimuth) * ti.sin(
-            camera_polar), ti.cos(camera_polar))  # the offset of the camera from the center of the volume
-        camera_pos = DOMAIN_CENTER + camera_offset  # the position of the camera
-        cam_Z = timath.normalize(-camera_offset)  # the camera's z axis
-        cam_Y = PPTypes.VEC3f(0.0, 0.0, 1.0)
-        cam_X = timath.normalize(timath.cross(cam_Z, cam_Y))  # the camera's x axis
-        cam_Y = timath.normalize(timath.cross(cam_X, cam_Z))  # the camera's y axis
-        m_b = -999.0
-        new_sigma_a = 0.0
-        new_sigma_s = 0.0
-        albedo = 0.0
-        if (sigma_t > 1.e-5):
-            albedo = sigma_s / sigma_t
-            new_sigma_a = (1.0 - albedo) * sigma_t
-            new_sigma_s = albedo * sigma_t
-        for x, y in ti.ndrange(VIS_RESOLUTION[0], VIS_RESOLUTION[1]):
-            ###
-            ### FOR EACH PIXEL ...
-            ###
 
-            ## Compute x and y ray directions in neutral camera position
-            # x coordinate of the ray in the camera's coordinate system
-            rx = DOMAIN_SIZE_MAX * \
-                (ti.cast(x, PPTypes.FLOAT_GPU) /
-                 ti.cast(VIS_RESOLUTION[0], PPTypes.FLOAT_GPU)) - 0.5 * DOMAIN_SIZE_MAX
-            # y coordinate of the ray in the camera's coordinate system
-            ry = DOMAIN_SIZE_MAX * \
-                (ti.cast(y, PPTypes.FLOAT_GPU) /
-                 ti.cast(VIS_RESOLUTION[1], PPTypes.FLOAT_GPU)) - 0.5 * DOMAIN_SIZE_MAX
-            # correct for aspect ratio (+ resize handler, since this is computed per-frame)
-            ry /= aspect_ratio
+            ## INITIAL CONSTANTS
+            # the aspect ratio of the image
+            aspect_ratio = ti.cast(VIS_RESOLUTION[0], PPTypes.FLOAT_GPU) / \
+                ti.cast(VIS_RESOLUTION[1], PPTypes.FLOAT_GPU)
+            screen_distance = DOMAIN_SIZE_MAX  # the distance of the screen from the camera
+            camera_offset = camera_distance * PPTypes.VEC3f(ti.cos(camera_azimuth) * ti.sin(camera_polar), ti.sin(camera_azimuth) * ti.sin(
+                camera_polar), ti.cos(camera_polar))  # the offset of the camera from the center of the volume
+            camera_pos = DOMAIN_CENTER + camera_offset  # the position of the camera
+            cam_Z = timath.normalize(-camera_offset)  # the camera's z axis
+            cam_Y = PPTypes.VEC3f(0.0, 0.0, 1.0)
+            cam_X = timath.normalize(timath.cross(cam_Z, cam_Y))  # the camera's x axis
+            cam_Y = timath.normalize(timath.cross(cam_X, cam_Z))  # the camera's y axis
+            m_b = -999.0
+            new_sigma_a = 0.0
+            new_sigma_s = 0.0
+            albedo = 0.0
+            if (sigma_t > 1.e-5):
+                albedo = sigma_s / sigma_t
+                new_sigma_a = (1.0 - albedo) * sigma_t
+                new_sigma_s = albedo * sigma_t
+            for x, y in ti.ndrange(VIS_RESOLUTION[0], VIS_RESOLUTION[1]):
+                ###
+                ### FOR EACH PIXEL ...
+                ###
 
-            ## Initialize ray origin and direction
-            screen_pos = camera_pos + rx * cam_X + ry * cam_Y + screen_distance * \
-                cam_Z  # position of the ray in the world coordinate system
+                ## Compute x and y ray directions in neutral camera position
+                # x coordinate of the ray in the camera's coordinate system
+                rx = DOMAIN_SIZE_MAX * \
+                    (ti.cast(x, PPTypes.FLOAT_GPU) /
+                     ti.cast(VIS_RESOLUTION[0], PPTypes.FLOAT_GPU)) - 0.5 * DOMAIN_SIZE_MAX
+                # y coordinate of the ray in the camera's coordinate system
+                ry = DOMAIN_SIZE_MAX * \
+                    (ti.cast(y, PPTypes.FLOAT_GPU) /
+                     ti.cast(VIS_RESOLUTION[1], PPTypes.FLOAT_GPU)) - 0.5 * DOMAIN_SIZE_MAX
+                # correct for aspect ratio (+ resize handler, since this is computed per-frame)
+                ry /= aspect_ratio
 
-            # Great! Now we have everything we need for the ray for this pixel.
-            rho_max_inv = 1.0 / self.trace_to_rho(trace_max)
+                ## Initialize ray origin and direction
+                screen_pos = camera_pos + rx * cam_X + ry * cam_Y + screen_distance * \
+                    cam_Z  # position of the ray in the world coordinate system
 
-            ## Get intersection of the ray with the volume AABB
-            # the path radiance of the ray (total light it has accumulated)
-            path_L = PPTypes.VEC3f(0.0, 0.0, 0.0)
+                # Great! Now we have everything we need for the ray for this pixel.
+                rho_max_inv = 1.0 / self.trace_to_rho(trace_max)
 
-            for s in range(num_samples):
-                ray_pos = camera_pos  # the position of the ray in the world coordinate system
-                # the direction of the ray in the world coordinate system
-                ray_dir = timath.normalize(screen_pos - ray_pos)
+                ## Get intersection of the ray with the volume AABB
+                # the path radiance of the ray (total light it has accumulated)
+                path_L = PPTypes.VEC3f(0.0, 0.0, 0.0)
 
-                t = self.ray_AABB_intersection(ray_pos, ray_dir, PPTypes.VEC3f(DOMAIN_MIN), PPTypes.VEC3f(
-                    DOMAIN_MAX))  # returns [near, far] of volume intersection
+                for s in range(num_samples):
+                    ray_pos = camera_pos  # the position of the ray in the world coordinate system
+                    # the direction of the ray in the world coordinate system
+                    ray_dir = timath.normalize(screen_pos - ray_pos)
 
-                if (t.y >= 0):
-                    t.x += RAY_EPSILON
-                    t.y -= RAY_EPSILON
-                    ray_pos += t.x * ray_dir  # move the ray to the intersection point
-                    # shorten the ray to the intersection interval
-                    ray_dir = ray_dir * (t.y - t.x)
-                    ray_dir = timath.normalize(ray_dir)  # normalize the ray direction
-                    t_event = 0.0
-                    throughput = 1.0
+                    t = self.ray_AABB_intersection(ray_pos, ray_dir, PPTypes.VEC3f(DOMAIN_MIN), PPTypes.VEC3f(
+                        DOMAIN_MAX))  # returns [near, far] of volume intersection
 
-                    for n in range(max_bounces):
-                        t = self.ray_AABB_intersection(ray_pos, ray_dir, PPTypes.VEC3f(DOMAIN_MIN), PPTypes.VEC3f(
-                            DOMAIN_MAX))  # returns [near, far] of volume intersection
-                        t_event = self.delta_tracking(ray_pos, ray_dir, 0.0, t.y, rho_max_inv, new_sigma_a, new_sigma_s, DEPOSIT_RESOLUTION, deposit_field, trace_field, current_deposit_index, DOMAIN_MIN, DOMAIN_MAX, TRACE_RESOLUTION, sigma_e, trace_vis, deposit_vis)
-                        if (t_event >= t.y):
-                            break
+                    if (t.y >= 0):
+                        t.x += RAY_EPSILON
+                        t.y -= RAY_EPSILON
+                        ray_pos += t.x * ray_dir  # move the ray to the intersection point
+                        # shorten the ray to the intersection interval
+                        ray_dir = ray_dir * (t.y - t.x)
+                        ray_dir = timath.normalize(ray_dir)  # normalize the ray direction
+                        t_event = 0.0
+                        throughput = 1.0
 
-                        m_b = sigma_t
+                        for n in range(max_bounces):
+                            t = self.ray_AABB_intersection(ray_pos, ray_dir, PPTypes.VEC3f(DOMAIN_MIN), PPTypes.VEC3f(
+                                DOMAIN_MAX))  # returns [near, far] of volume intersection
+                            t_event = self.delta_tracking(ray_pos, ray_dir, 0.0, t.y, rho_max_inv, new_sigma_a, new_sigma_s, DEPOSIT_RESOLUTION, deposit_field, trace_field, current_deposit_index, DOMAIN_MIN, DOMAIN_MAX, TRACE_RESOLUTION, sigma_e, trace_vis, deposit_vis)
+                            if (t_event >= t.y):
+                                break
 
-                        ray_pos += t_event * ray_dir  # move the ray to the intersection point
+                            m_b = sigma_t
 
-                        sample = self.sample_volume(ray_pos, DEPOSIT_RESOLUTION, deposit_field, trace_field, current_deposit_index, DOMAIN_MIN, DOMAIN_MAX, TRACE_RESOLUTION, sigma_e, trace_vis, deposit_vis)
-                        # combine the trace and deposit values
-                        rho_event = sample[0] + sample[1]
+                            ray_pos += t_event * ray_dir  # move the ray to the intersection point
 
-                        # sample the volume at the intersection point
-                        rho_event = rho_event * throughput_multiplier
+                            sample = self.sample_volume(ray_pos, DEPOSIT_RESOLUTION, deposit_field, trace_field, current_deposit_index, DOMAIN_MIN, DOMAIN_MAX, TRACE_RESOLUTION, sigma_e, trace_vis, deposit_vis)
+                            # combine the trace and deposit values
+                            rho_event = sample[0] + sample[1]
 
-                        emission = self.get_emitted_trace_L(rho_event, colormap_resolution, colormap)
+                            # sample the volume at the intersection point
+                            rho_event = rho_event * throughput_multiplier
 
-                        if debug_mode == 1:
-                            path_L = n
-                        else:
-                            path_L += throughput * rho_event * sigma_e * emission / 255
+                            emission = self.get_emitted_trace_L(rho_event, colormap)
 
-                        ray_dir = timath.normalize(
-                            self.sample_HG(ray_dir, scattering_anisotropy))  # sample HGF
+                            if debug_mode == 1:
+                                path_L = n
+                            else:
+                                path_L += throughput * rho_event * sigma_e * emission / 255
 
-                        # if (_USE_RUSSIAN_ROULETTE == True):
-                        #     if (n >= _RUSSIAN_ROULETTE_START_ORDER and ti.random() > albedo):
-                        #         break
-                        #     else:
-                        #         throughput *= albedo
-                        # else:
-                        #     throughput *= albedo
-                        throughput *= albedo #   <-- remove this line for russian roulette
+                            ray_dir = timath.normalize(
+                                self.sample_HG(ray_dir, scattering_anisotropy))  # sample HGF
 
-            if (accumulate_frame == True):
-                if (path_L[0] != 0 and path_L[1] != 0 and path_L[2] != 0):
-                    new_value = path_L / num_samples
-                    old_value = vis_field[x, y]
+                            # if (_USE_RUSSIAN_ROULETTE == True):
+                            #     if (n >= _RUSSIAN_ROULETTE_START_ORDER and ti.random() > albedo):
+                            #         break
+                            #     else:
+                            #         throughput *= albedo
+                            # else:
+                            #     throughput *= albedo
+                            throughput *= albedo #   <-- remove this line for russian roulette
 
-                    weight = 1.0 / (accumulation_count + 1)
-                    accumulatedPixel = old_value * (1 - weight) + new_value * weight
-                    # average the path radiance between this and the previous frame
-                    vis_field[x, y] = accumulatedPixel
-            else:
-                # average the path radiance over the number of samples
-                vis_field[x, y] = path_L / num_samples
-                # TODO: Should switch to the ray marcher in this case ... don't trigger from here, instead from the handler class
-        # print("aaa:", m_b) # <-- PRINT VIABLE HERE
-        return
+                if (accumulate_frame == True):
+                    if (path_L[0] != 0 and path_L[1] != 0 and path_L[2] != 0):
+                        new_value = path_L / num_samples
+                        old_value = vis_field[x, y]
+
+                        weight = 1.0 / (accumulation_count + 1)
+                        accumulatedPixel = old_value * (1 - weight) + new_value * weight
+                        # average the path radiance between this and the previous frame
+                        vis_field[x, y] = accumulatedPixel
+                else:
+                    # average the path radiance over the number of samples
+                    vis_field[x, y] = path_L / num_samples
+                    # TODO: Should switch to the ray marcher in this case ... don't trigger from here, instead from the handler class
+            # print("aaa:", m_b) # <-- PRINT VIABLE HERE
+            return

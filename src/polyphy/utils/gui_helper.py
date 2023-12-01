@@ -33,14 +33,21 @@ class GuiHelper:
             'Deposit attn', ppConfig.deposit_attenuation, 0.8, 0.999)
         ppConfig.trace_attenuation = window.GUI.slider_float(
             'Trace attn', ppConfig.trace_attenuation, 0.8, 0.999)
-        ppConfig.deposit_vis = math.pow(10.0, window.GUI.slider_float(
-            'Deposit vis', math.log(ppConfig.deposit_vis, 10.0), -3.0, 3.0))
-        ppConfig.trace_vis = math.pow(10.0, window.GUI.slider_float(
-            'Trace vis', math.log(ppConfig.trace_vis, 10.0), -3.0, 3.0))
         
 
-
         window.GUI.text("Renderer Parameters:")
+
+        new_deposit_vis = math.pow(10.0, window.GUI.slider_float(
+            'Deposit vis', math.log(ppConfig.deposit_vis, 10.0), -3.0, 3.0))
+        if (ppConfig.deposit_vis != new_deposit_vis):
+            ppConfig.deposit_vis = new_deposit_vis
+            ppConfig.reset = True
+
+        new_trace_vis = math.pow(10.0, window.GUI.slider_float(
+            'Trace vis', math.log(ppConfig.trace_vis, 10.0), -3.0, 3.0))
+        if (ppConfig.trace_vis != new_trace_vis):
+            ppConfig.trace_vis = new_trace_vis
+            ppConfig.reset = True
 
         new_max_bounces = window.GUI.slider_int(
             'Max bounces', ppConfig.max_bounces, 1, 16)

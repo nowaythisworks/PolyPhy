@@ -4,6 +4,7 @@
 # Maintainers:
 
 import taichi as ti
+import taichi.math as timath
 
 from core.common import PPTypes
 
@@ -70,14 +71,16 @@ class PPKernels:
 
         return t
 
+    # this function exists in case we want to implement a middleman step between colormap and emission, such as a non-uniform scale for emission values
     @ti.func
-    def get_emitted_trace_L(self, pos: PPTypes.FLOAT_GPU, colormap_depth: PPTypes.INT_GPU, colormap: ti.template()):
-        return self.TexSamplePosition(pos, colormap_depth, colormap)
+    def get_emitted_trace_L(self, pos: PPTypes.FLOAT_GPU, colormap: ti.template()):
+        return self.TexSamplePosition(pos, colormap)
 
+    # this function maps any point value to a color on a 1x123 colormap
     @ti.func
-    def TexSamplePosition(self, pos: PPTypes.FLOAT_GPU, colormap_depth: PPTypes.INT_GPU, colormap: ti.template()):
+    def TexSamplePosition(self, pos: PPTypes.FLOAT_GPU, colormap: ti.template(), shift: PPTypes.INT_GPU = 0):
         # find an index
-        xPos = ti.min(ti.floor(pos * 123, ti.i32), 122 - 1)
+        xPos = timath.clamp(ti.min(ti.floor((pos) * 123, ti.i32), 122 - 1) + shift, 0, 122 - 1)
         red = colormap[xPos, 1, 0]
         green = colormap[xPos, 1, 1]
         blue = colormap[xPos, 1, 2]
