@@ -330,7 +330,7 @@ class PPKernels_3DDiscrete(PPKernels):
                         t_current += ray_delta
 
                 # vis_field[x, y] = timath.pow(ray_L, 1.0/2.2)
-                vis_field[x, y] = (ray_L[0] * self.TexSamplePosition(ray_L[0], colormap, 50)) * 0.5
+                vis_field[x, y] = ((ray_L[1] + ray_L[0]) * self.TexSamplePosition(ray_L[0], colormap, 50)) * 0.5
             return
 
 
