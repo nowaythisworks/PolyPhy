@@ -79,7 +79,7 @@ class GuiHelper:
             ppConfig.reset = True
 
         new_extinction = window.GUI.slider_float(
-            'Extinction', ppConfig.extinction, 0.0, 50.0)
+            'Extinction', ppConfig.extinction, 1.0, 25.0)
         if (ppConfig.extinction != new_extinction):
             ppConfig.extinction = new_extinction
             ppConfig.reset = True
