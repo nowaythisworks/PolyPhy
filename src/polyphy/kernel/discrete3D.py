@@ -252,6 +252,7 @@ class PPKernels_3DDiscrete(PPKernels):
         camera_azimuth: PPTypes.FLOAT_GPU,
         n_ray_steps_f: PPTypes.FLOAT_GPU,
         current_deposit_index: PPTypes.INT_GPU,
+        exposure: PPTypes.FLOAT_GPU,
         TRACE_RESOLUTION: PPTypes.VEC3i,
         DEPOSIT_RESOLUTION: PPTypes.VEC3i,
         VIS_RESOLUTION: PPTypes.VEC2i,
@@ -330,7 +331,7 @@ class PPKernels_3DDiscrete(PPKernels):
                         t_current += ray_delta
 
                 # vis_field[x, y] = timath.pow(ray_L, 1.0/2.2)
-                vis_field[x, y] = ((ray_L[1] + ray_L[0]) * self.TexSamplePosition(ray_L[0], colormap, 50)) * 0.5
+                vis_field[x, y] = ((ray_L[1] + ray_L[0]) * self.TexSamplePosition(ray_L[0], colormap, 50)) * 0.5 * exposure
             return
 
 
@@ -348,9 +349,10 @@ class PPKernels_3DDiscrete(PPKernels):
         current_deposit_index: PPTypes.INT_GPU,
         accumulate_frame: PPTypes.INT_GPU,
         accumulation_count: PPTypes.INT_GPU,
-        throughput_multiplier: PPTypes.FLOAT_GPU,
+        exposure: PPTypes.FLOAT_GPU,
         num_samples: PPTypes.INT_GPU,
         max_bounces: PPTypes.INT_GPU,
+        albedo: PPTypes.FLOAT_GPU,
         deposit_vis: PPTypes.FLOAT_GPU,
         trace_vis: PPTypes.FLOAT_GPU,
         TRACE_RESOLUTION: PPTypes.VEC3i,
@@ -365,13 +367,13 @@ class PPKernels_3DDiscrete(PPKernels):
         trace_field: ti.template(),
         scattering_anisotropy: PPTypes.FLOAT_GPU,
         sigma_e: PPTypes.FLOAT_GPU,
-        sigma_a: PPTypes.FLOAT_GPU,
         sigma_s: PPTypes.FLOAT_GPU,
         sigma_t: PPTypes.FLOAT_GPU,
         trace_max: PPTypes.FLOAT_GPU,
         debug_mode: PPTypes.INT_GPU,
         vis_field: ti.template(),
-        colormap: ti.template()):
+        colormap: ti.template(),
+        did_just_reset: PPTypes.INT_GPU):
 
             ## INITIAL CONSTANTS
             # the aspect ratio of the image
@@ -388,11 +390,11 @@ class PPKernels_3DDiscrete(PPKernels):
             m_b = -999.0
             new_sigma_a = 0.0
             new_sigma_s = 0.0
-            albedo = 0.0
+            new_albedo = albedo
             if (sigma_t > 1.e-5):
-                albedo = sigma_s / sigma_t
-                new_sigma_a = (1.0 - albedo) * sigma_t
-                new_sigma_s = albedo * sigma_t
+                new_albedo = sigma_s / sigma_t
+                new_sigma_a = (1.0 - new_albedo) * sigma_t
+                new_sigma_s = new_albedo * sigma_t
             for x, y in ti.ndrange(VIS_RESOLUTION[0], VIS_RESOLUTION[1]):
                 ###
                 ### FOR EACH PIXEL ...
@@ -455,7 +457,7 @@ class PPKernels_3DDiscrete(PPKernels):
                             rho_event = sample[0] + sample[1]
 
                             # sample the volume at the intersection point
-                            rho_event = rho_event * throughput_multiplier
+                            # rho_event = rho_event * throughput_multiplier
 
                             emission = self.get_emitted_trace_L(rho_event, colormap)
 
@@ -468,15 +470,15 @@ class PPKernels_3DDiscrete(PPKernels):
                                 self.sample_HG(ray_dir, scattering_anisotropy))  # sample HGF
 
                             # if (_USE_RUSSIAN_ROULETTE == True):
-                            #     if (n >= _RUSSIAN_ROULETTE_START_ORDER and ti.random() > albedo):
+                            #     if (n >= _RUSSIAN_ROULETTE_START_ORDER and ti.random() > new_albedo):
                             #         break
                             #     else:
-                            #         throughput *= albedo
+                            #         throughput *= new_albedo
                             # else:
-                            #     throughput *= albedo
-                            throughput *= albedo #   <-- remove this line for russian roulette
+                            #     throughput *= new_albedo
+                            throughput *= new_albedo #   <-- remove this line for russian roulette
 
-                if (accumulate_frame == True):
+                if (accumulate_frame == True and did_just_reset == False):
                     if (path_L[0] != 0 and path_L[1] != 0 and path_L[2] != 0):
                         new_value = path_L / num_samples
                         old_value = vis_field[x, y]
@@ -487,7 +489,7 @@ class PPKernels_3DDiscrete(PPKernels):
                         vis_field[x, y] = accumulatedPixel
                 else:
                     # average the path radiance over the number of samples
-                    vis_field[x, y] = path_L / num_samples
+                    vis_field[x, y] = (path_L / num_samples) * exposure
                     # TODO: Should switch to the ray marcher in this case ... don't trigger from here, instead from the handler class
             # print("aaa:", m_b) # <-- PRINT VIABLE HERE
             return

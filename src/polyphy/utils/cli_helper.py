@@ -27,6 +27,16 @@ class CliHelper:
             type=str,
             help="Main input data file (string relative to the root directory)")
         parser.add_argument(
+            '-x',
+            '--resolution-x',
+            type=int,
+            help="X Resolution (width) of window")
+        parser.add_argument(
+            '-y',
+            '--resolution-y',
+            type=int,
+            help="Y Resolution (height) of window")
+        parser.add_argument(
             '-b',
             '--batch-mode',
             action='store_true',
@@ -129,6 +139,9 @@ class CliHelper:
         else:
             ppConfig.setter("input_file", '')
             raise AssertionError("Please specify the main input data file (string relative to the root directory)")
+        if args.resolution_x:
+            if args.resolution_y:
+                ppConfig.setter("VIS_RESOLUTION", (int(args.resolution_x), int(args.resolution_y)))
         if args.batch_mode:
             print("Batch mode activated!")
             if args.num_iterations:

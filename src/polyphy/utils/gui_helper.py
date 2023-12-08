@@ -36,6 +36,23 @@ class GuiHelper:
         
 
         window.GUI.text("Renderer Parameters:")
+            
+        new_exposure = window.GUI.slider_float(
+            'Exposure', ppConfig.exposure, 1.0, 25.0)
+        if (ppConfig.exposure != new_exposure):
+            ppConfig.exposure = new_exposure
+
+        new_num_samples = window.GUI.slider_int(
+            'PT SAMPLES', ppConfig.num_samples, 1, 16)
+        if (ppConfig.num_samples != new_num_samples):
+            ppConfig.num_samples = new_num_samples
+            ppConfig.reset = True
+
+        new_n_ray_steps = window.GUI.slider_int(
+            'RM SAMPLES', ppConfig.n_ray_steps, 1, 400)
+        if (ppConfig.n_ray_steps != new_n_ray_steps):
+            ppConfig.n_ray_steps = new_n_ray_steps
+            ppConfig.reset = True
 
         new_deposit_vis = math.pow(10.0, window.GUI.slider_float(
             'Deposit vis', math.log(ppConfig.deposit_vis, 10.0), -3.0, 3.0))
@@ -55,28 +72,28 @@ class GuiHelper:
             ppConfig.max_bounces = new_max_bounces
             ppConfig.reset = True
 
-        new_num_samples = window.GUI.slider_int(
-            'Num samples', ppConfig.num_samples, 1, 16)
-        if (ppConfig.num_samples != new_num_samples):
-            ppConfig.num_samples = new_num_samples
-            ppConfig.reset = True
-            
-        new_exposure = window.GUI.slider_float(
-            'Exposure', ppConfig.exposure, 1.0, 10.0)
-        if (ppConfig.exposure != new_exposure):
-            ppConfig.exposure = new_exposure
+        new_albedo = window.GUI.slider_float(
+            'Albedo', ppConfig.albedo, 0.0, 1000.0)
+        if (ppConfig.albedo != new_albedo):
+            ppConfig.albedo = new_albedo
             ppConfig.reset = True
 
         new_extinction = window.GUI.slider_float(
-            'Extinction', ppConfig.extinction, 0.0, 1.0)
+            'Extinction', ppConfig.extinction, 0.0, 50.0)
         if (ppConfig.extinction != new_extinction):
             ppConfig.extinction = new_extinction
             ppConfig.reset = True
 
-        new_emission = window.GUI.slider_float(
-            'Emission', ppConfig.emission, 0.0, 64.0)
-        if (ppConfig.emission != new_emission):
-            ppConfig.emission = new_emission
+        # new_emission = window.GUI.slider_float(
+        #     'Emission', ppConfig.emission, 0.0, 64.0)
+        # if (ppConfig.emission != new_emission):
+        #     ppConfig.emission = new_emission
+        #     ppConfig.reset = True
+
+        new_sigma_s = window.GUI.slider_float(
+            'Sigma_s', ppConfig.sigma_s, 0.0, 1.0)
+        if (ppConfig.sigma_s != new_sigma_s):
+            ppConfig.sigma_s = new_sigma_s
             ppConfig.reset = True
         
 

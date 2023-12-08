@@ -87,14 +87,16 @@ class PPConfig:
     MAX_DEPOSIT = 10.0
     DOMAIN_MARGIN = 0.05
     RAY_EPSILON = 1.0e-3
-    VIS_RESOLUTION = (3840, 2160)
+    VIS_RESOLUTION = (2048, 1024)
 
     # Renderer Parameters
     max_bounces = 6
     num_samples = 3
+    albedo = 0.0
     exposure = 1.0
     extinction = 0.5
     emission = 10.0
+    sigma_s = 0.0
     reset = False
 
     # Input files
@@ -112,7 +114,7 @@ class PPConfig:
     agent_deposit = -1.0
     deposit_vis = 0.001
     trace_vis = 0.228
-    n_ray_steps = 50.0
+    n_ray_steps = 50
 
     @staticmethod
     def set_value(constant_name, new_value):

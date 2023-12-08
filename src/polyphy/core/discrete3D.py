@@ -355,7 +355,6 @@ class PPSimulation_3DDiscrete(PPSimulation):
                 if (self.do_render):
                     if (ppConfig.reset == True):
                         ppInternalData.ppKernels.zero_field(ppInternalData.vis_field)
-                        ppConfig.reset = False
 
                     if (should_accumulate == False):
                         ppInternalData.ppKernels.render_visualization_3D_raymarched(
@@ -366,6 +365,7 @@ class PPSimulation_3DDiscrete(PPSimulation):
                             camera_azimuth,
                             ppConfig.n_ray_steps,
                             self.current_deposit_index,
+                            ppConfig.exposure, # throughput multiplier
                             ppConfig.TRACE_RESOLUTION,
                             ppConfig.DEPOSIT_RESOLUTION,
                             ppConfig.VIS_RESOLUTION,
@@ -389,6 +389,7 @@ class PPSimulation_3DDiscrete(PPSimulation):
                             ppConfig.exposure, # throughput multiplier
                             ppConfig.num_samples, # num samples
                             ppConfig.max_bounces, # max bounces
+                            ppConfig.albedo,
                             ppConfig.deposit_vis,
                             ppConfig.trace_vis,
                             ppConfig.TRACE_RESOLUTION,
@@ -403,13 +404,14 @@ class PPSimulation_3DDiscrete(PPSimulation):
                             ppInternalData.trace_field,
                             0.9, # scattering anisotropy
                             ppConfig.emission, # sigma_e
-                            0.5, # sigma_a
-                            0.0, # sigma_s
-                            ppConfig.extinction, # sigma_t\
+                            ppConfig.sigma_s, # sigma_s
+                            ppConfig.extinction, # sigma_t
                             2.89, # trace_max
                             False, # debug_mode
                             ppInternalData.vis_field,
-                            ppInternalData.colormap)
+                            ppInternalData.colormap,
+                            ppConfig.reset)
+                        ppConfig.reset = False
                 else:
                     ppInternalData.ppKernels.zero_field(ppInternalData.vis_field)
 
