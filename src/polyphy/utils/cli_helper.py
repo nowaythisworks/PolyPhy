@@ -7,8 +7,10 @@ import argparse
 
 from core.common import PPConfig
 from core.discrete2D import PPConfig_2DDiscrete
+from core.continuous2D import PPConfig_2DContinuous
 from core.discrete3D import PPConfig_3DDiscrete
 from pipelines.discrete2D import PolyPhy_2DDiscrete
+from pipelines.continuous2D import PolyPhy_2DContinuous
 from pipelines.discrete3D import PolyPhy_3DDiscrete
 
 
@@ -19,8 +21,8 @@ class CliHelper:
         parser.add_argument(
             "pipeline",
             type=str,
-            choices=['2d_discrete', '3d_discrete'],
-            help="Run one of the pipelines")
+            choices=['2d_discrete', '2d_continuous', '3d_discrete'],
+            help="Run one of the data pipelines")
         parser.add_argument(
             '-f',
             '--input-file',
@@ -28,14 +30,19 @@ class CliHelper:
             help="Main input data file (string relative to the root directory)")
         parser.add_argument(
             '-x',
-            '--resolution-x',
+            '--window-res-x',
             type=int,
-            help="X Resolution (width) of window")
+            help="X resolution of the main window")
         parser.add_argument(
             '-y',
-            '--resolution-y',
+            '--window-res-y',
             type=int,
-            help="Y Resolution (height) of window")
+            help="Y resolution of the main window")
+        parser.add_argument(
+            '-t',
+            '--trace-res-max',
+            type=int,
+            help="Maximum resolution of the trace field (remaining dimensions will be determined automatically)")
         parser.add_argument(
             '-b',
             '--batch-mode',
@@ -132,16 +139,15 @@ class CliHelper:
         args = CliHelper.args
         if args.pipeline == "2d_discrete":
             ppConfig = PPConfig_2DDiscrete()
+        elif args.pipeline == "2d_continuous":
+            ppConfig = PPConfig_2DContinuous()
         elif args.pipeline == "3d_discrete":
             ppConfig = PPConfig_3DDiscrete()
         if args.input_file:
             ppConfig.setter("input_file", str(args.input_file))
         else:
             ppConfig.setter("input_file", '')
-            raise AssertionError("Please specify the main input data file (string relative to the root directory)")
-        if args.resolution_x:
-            if args.resolution_y:
-                ppConfig.setter("VIS_RESOLUTION", (int(args.resolution_x), int(args.resolution_y)))
+            # raise AssertionError("Please specify the main input data file (string relative to the root directory)")
         if args.batch_mode:
             print("Batch mode activated!")
             if args.num_iterations:
@@ -149,7 +155,11 @@ class CliHelper:
             else:
                 raise AssertionError("Please set number of iterations for batch mode using -n <int>")
         if args.num_iterations and not args.batch_mode:
-            raise AssertionError("Please set to batch mode")
+            raise AssertionError("Please set to batch mode using -b argument")
+        if args.window_res_x and args.window_res_y:
+            ppConfig.setter("VIS_RESOLUTION", (args.window_res_x, args.window_res_y))
+        if args.trace_res_max:
+            ppConfig.setter("TRACE_RESOLUTION_MAX", args.trace_res_max)
         if args.sensing_dist:
             ppConfig.setter("sense_distance", args.sensing_dist)
         if args.sensing_angle:
@@ -213,6 +223,8 @@ class CliHelper:
                 ppConfig.setter("agent_boundary_handling",
                                 PPConfig.EnumAgentBoundaryHandling.REINIT_RANDOMLY)
         if args.pipeline == "2d_discrete":
-            PolyPhy_2DDiscrete(ppConfig).start_simulation()
+            PolyPhy_2DDiscrete(ppConfig, args.batch_mode, args.num_iterations).start_simulation()
+        elif args.pipeline == "2d_continuous":
+            PolyPhy_2DContinuous(ppConfig, args.batch_mode, args.num_iterations).start_simulation()
         elif args.pipeline == "3d_discrete":
-            PolyPhy_3DDiscrete(ppConfig).start_simulation()
+            PolyPhy_3DDiscrete(ppConfig, args.batch_mode, args.num_iterations).start_simulation()

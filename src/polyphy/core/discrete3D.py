@@ -19,7 +19,6 @@ class PPConfig_3DDiscrete(PPConfig):
 
     def register_data(self, ppData):
         self.ppData = ppData
-        self.TRACE_RESOLUTION_MAX = 1024
         self.DATA_TO_AGENTS_RATIO = PPTypes.FLOAT_CPU(
             ppData.N_DATA) / PPTypes.FLOAT_CPU(ppData.N_AGENTS)
         self.DOMAIN_SIZE_MAX = np.max(
@@ -117,7 +116,7 @@ class PPInputData_3DDiscrete(PPInputData):
             loc=self.DOMAIN_MIN[2] + 0.5 * self.DOMAIN_MAX[2],
             scale=0.15 * self.DOMAIN_SIZE[2],
             size=self.N_DATA)
-        self.data[:, 3] = self.AVG_WEIGHT
+        self.data[:, 3] = rng.normal(loc=self.AVG_WEIGHT, scale=0.5 * self.AVG_WEIGHT, size=self.N_DATA)
 
 
 class PPInternalData_3DDiscrete(PPInternalData):
@@ -134,20 +133,6 @@ class PPInternalData_3DDiscrete(PPInternalData):
         ppKernels.zero_field(self.deposit_field)
         ppKernels.zero_field(self.trace_field)
         ppKernels.zero_field(self.vis_field)
-
-    # Store current deposit and trace fields
-    def store_fit(self):
-        if not os.path.exists(self.ppConfig.ppData.ROOT + "data/fits/"):
-            os.makedirs(self.ppConfig.ppData.ROOT + "data/fits/")
-        current_stamp = Logger.stamp()
-        Logger.logToStdOut("info", 'Storing solution data in data/fits/')
-        deposit = self.deposit_field.to_numpy()
-        np.save(
-            self.ppConfig.ppData.ROOT + 'data/fits/deposit_' + current_stamp + '.npy', deposit)
-        trace = self.trace_field.to_numpy()
-        np.save(
-            self.ppConfig.ppData.ROOT + 'data/fits/trace_' + current_stamp + '.npy', trace)
-        return current_stamp, deposit, trace
 
     def __init__(self, rng, ppKernels, ppConfig):
         self.agents = np.zeros(
