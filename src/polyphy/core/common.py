@@ -95,7 +95,7 @@ class PPConfig:
     albedo = 0.0
     exposure = 1.0
     extinction = 0.5
-    emission = 10.0
+    emission = 6.0
     sigma_s = 0.0
     reset = False
 

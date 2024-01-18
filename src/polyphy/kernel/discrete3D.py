@@ -263,6 +263,7 @@ class PPKernels_3DDiscrete(PPKernels):
         RAY_EPSILON: PPTypes.FLOAT_GPU,
         deposit_field: ti.template(),
         trace_field: ti.template(),
+        sigma_t: PPTypes.FLOAT_GPU,
         vis_field: ti.template(),
         colormap: ti.template()):
 
@@ -331,7 +332,7 @@ class PPKernels_3DDiscrete(PPKernels):
                         t_current += ray_delta
 
                 # vis_field[x, y] = timath.pow(ray_L, 1.0/2.2)
-                vis_field[x, y] = ((ray_L[1] + ray_L[0]) * self.TexSamplePosition(ray_L[0], colormap, 50)) * 0.5 * exposure
+                vis_field[x, y] = ((ray_L[1] + ray_L[0]) * self.TexSamplePosition(ray_L[0], colormap, 50)) * 0.4 * exposure
             return
 
 
@@ -489,7 +490,7 @@ class PPKernels_3DDiscrete(PPKernels):
                         vis_field[x, y] = accumulatedPixel
                 else:
                     # average the path radiance over the number of samples
-                    vis_field[x, y] = (path_L / num_samples) * exposure
-                    # TODO: Should switch to the ray marcher in this case ... don't trigger from here, instead from the handler class
-            # print("aaa:", m_b) # <-- PRINT VIABLE HERE
+                    vis_field[x, y] = (path_L / num_samples)
+                
+                    vis_field[x, y] *= exposure
             return

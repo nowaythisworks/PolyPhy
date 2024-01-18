@@ -19,7 +19,7 @@ class PPConfig_3DDiscrete(PPConfig):
 
     def register_data(self, ppData):
         self.ppData = ppData
-        self.TRACE_RESOLUTION_MAX = 800
+        self.TRACE_RESOLUTION_MAX = 1024
         self.DATA_TO_AGENTS_RATIO = PPTypes.FLOAT_CPU(
             ppData.N_DATA) / PPTypes.FLOAT_CPU(ppData.N_AGENTS)
         self.DOMAIN_SIZE_MAX = np.max(
@@ -376,6 +376,7 @@ class PPSimulation_3DDiscrete(PPSimulation):
                             ppConfig.RAY_EPSILON,
                             ppInternalData.deposit_field,
                             ppInternalData.trace_field,
+                            ppConfig.extinction, # sigma_t
                             ppInternalData.vis_field,
                             ppInternalData.colormap)
                     else:

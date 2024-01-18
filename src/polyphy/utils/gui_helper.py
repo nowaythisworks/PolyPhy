@@ -38,7 +38,7 @@ class GuiHelper:
         window.GUI.text("Renderer Parameters:")
             
         new_exposure = window.GUI.slider_float(
-            'Exposure', ppConfig.exposure, 1.0, 25.0)
+            'Exposure', ppConfig.exposure, 0.1, 25.0)
         if (ppConfig.exposure != new_exposure):
             ppConfig.exposure = new_exposure
 
