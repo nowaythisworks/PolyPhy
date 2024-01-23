@@ -133,6 +133,7 @@ class PPInternalData_3DDiscrete(PPInternalData):
         ppKernels.zero_field(self.deposit_field)
         ppKernels.zero_field(self.trace_field)
         ppKernels.zero_field(self.vis_field)
+        ppKernels.zero_field(self.pt_raw_vis_field)
 
     def __init__(self, rng, ppKernels, ppConfig):
         self.agents = np.zeros(
@@ -178,6 +179,10 @@ class PPInternalData_3DDiscrete(PPInternalData):
             dtype=PPTypes.FLOAT_GPU,
             shape=ppConfig.TRACE_RESOLUTION)
         self.vis_field = ti.Vector.field(
+            n=3,
+            dtype=PPTypes.FLOAT_GPU,
+            shape=ppConfig.VIS_RESOLUTION)
+        self.pt_raw_vis_field = ti.Vector.field(
             n=3,
             dtype=PPTypes.FLOAT_GPU,
             shape=ppConfig.VIS_RESOLUTION)
@@ -340,8 +345,10 @@ class PPSimulation_3DDiscrete(PPSimulation):
                 if (self.do_render):
                     if (ppConfig.reset == True):
                         ppInternalData.ppKernels.zero_field(ppInternalData.vis_field)
+                        ppInternalData.ppKernels.zero_field(ppInternalData.pt_raw_vis_field)
 
                     if (should_accumulate == False):
+                    # if False:
                         ppInternalData.ppKernels.render_visualization_3D_raymarched(
                             ppConfig.trace_vis,
                             ppConfig.deposit_vis,
@@ -350,7 +357,7 @@ class PPSimulation_3DDiscrete(PPSimulation):
                             camera_azimuth,
                             ppConfig.n_ray_steps,
                             self.current_deposit_index,
-                            ppConfig.exposure, # throughput multiplier
+                            ppConfig.exposure,
                             ppConfig.TRACE_RESOLUTION,
                             ppConfig.DEPOSIT_RESOLUTION,
                             ppConfig.VIS_RESOLUTION,
@@ -363,6 +370,7 @@ class PPSimulation_3DDiscrete(PPSimulation):
                             ppInternalData.trace_field,
                             ppConfig.extinction, # sigma_t
                             ppInternalData.vis_field,
+                            ppInternalData.pt_raw_vis_field,
                             ppInternalData.colormap)
                     else:
                         ppInternalData.ppKernels.render_visualization_3D_pathtraced(
@@ -372,7 +380,7 @@ class PPSimulation_3DDiscrete(PPSimulation):
                             self.current_deposit_index,
                             should_accumulate, # should accumulate
                             accumulate_count, # accumulation count
-                            ppConfig.exposure, # throughput multiplier
+                            ppConfig.exposure,
                             ppConfig.num_samples, # num samples
                             ppConfig.max_bounces, # max bounces
                             ppConfig.albedo,
@@ -395,16 +403,21 @@ class PPSimulation_3DDiscrete(PPSimulation):
                             2.89, # trace_max
                             False, # debug_mode
                             ppInternalData.vis_field,
+                            ppInternalData.pt_raw_vis_field,
                             ppInternalData.colormap,
                             ppConfig.reset)
                         ppConfig.reset = False
                 else:
                     ppInternalData.ppKernels.zero_field(ppInternalData.vis_field)
+                    ppInternalData.ppKernels.zero_field(ppInternalData.pt_raw_vis_field)
 
 
 
 
                 if batch_mode is False:
+                    # POST PROCESSING
+                    # for x, y in ti.ndrange(ppConfig.VIS_RESOLUTION[0], ppConfig.VIS_RESOLUTION[1]):
+                    #     ppInternalData.vis_field[x, y] = ppInternalData.vis_field[x, y] * ppConfig.exposure
                     canvas.set_image(ppInternalData.vis_field)
                     if self.do_screenshot:
                         window.save_image(

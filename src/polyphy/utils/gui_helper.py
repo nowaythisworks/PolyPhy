@@ -39,35 +39,40 @@ class GuiHelper:
             'Trace attn', ppConfig.trace_attenuation, 0.8, 0.999)
         
 
-        window.GUI.text("Renderer Parameters:")
+        window.GUI.text("\nVisual Parameters:")
             
-        new_exposure = window.GUI.slider_float(
-            'Exposure', ppConfig.exposure, 0.1, 25.0)
+        new_exposure = (window.GUI.slider_float(
+            'Exposure', ppConfig.exposure, 0.1, 10.0))
         if (ppConfig.exposure != new_exposure):
             ppConfig.exposure = new_exposure
-
-        new_num_samples = window.GUI.slider_int(
-            'PT SAMPLES', ppConfig.num_samples, 1, 16)
-        if (ppConfig.num_samples != new_num_samples):
-            ppConfig.num_samples = new_num_samples
-            ppConfig.reset = True
-
-        new_n_ray_steps = window.GUI.slider_int(
-            'RM SAMPLES', ppConfig.n_ray_steps, 1, 400)
-        if (ppConfig.n_ray_steps != new_n_ray_steps):
-            ppConfig.n_ray_steps = new_n_ray_steps
             ppConfig.reset = True
 
         new_deposit_vis = math.pow(10.0, window.GUI.slider_float(
-            'Deposit vis', math.log(ppConfig.deposit_vis, 10.0), -3.0, 3.0))
+            'Deposit Weight', math.log(ppConfig.deposit_vis, 10.0), -3.0, 3.0))
         if (ppConfig.deposit_vis != new_deposit_vis):
             ppConfig.deposit_vis = new_deposit_vis
             ppConfig.reset = True
 
         new_trace_vis = math.pow(10.0, window.GUI.slider_float(
-            'Trace vis', math.log(ppConfig.trace_vis, 10.0), -3.0, 3.0))
+            'Trace Weight', math.log(ppConfig.trace_vis, 10.0), -3.0, 3.0))
         if (ppConfig.trace_vis != new_trace_vis):
             ppConfig.trace_vis = new_trace_vis
+            ppConfig.reset = True
+
+        window.GUI.text("Ray Marcher Parameters:")
+
+        new_n_ray_steps = window.GUI.slider_int(
+            'Samples', ppConfig.n_ray_steps, 1, 400)
+        if (ppConfig.n_ray_steps != new_n_ray_steps):
+            ppConfig.n_ray_steps = new_n_ray_steps
+            ppConfig.reset = True
+
+        window.GUI.text("Path Tracer Parameters:")
+
+        new_num_samples = window.GUI.slider_int(
+            'Samples', ppConfig.num_samples, 1, 16)
+        if (ppConfig.num_samples != new_num_samples):
+            ppConfig.num_samples = new_num_samples
             ppConfig.reset = True
 
         new_max_bounces = window.GUI.slider_int(
@@ -77,29 +82,24 @@ class GuiHelper:
             ppConfig.reset = True
 
         new_albedo = window.GUI.slider_float(
-            'Albedo', ppConfig.albedo, 0.0, 1000.0)
+            'Albedo', ppConfig.albedo, 0.0, 1.0)
         if (ppConfig.albedo != new_albedo):
             ppConfig.albedo = new_albedo
             ppConfig.reset = True
 
         new_extinction = window.GUI.slider_float(
-            'Extinction', ppConfig.extinction, 1.0, 25.0)
+            'Density', ppConfig.extinction, 0.0, 5.0)
         if (ppConfig.extinction != new_extinction):
             ppConfig.extinction = new_extinction
             ppConfig.reset = True
 
-        # new_emission = window.GUI.slider_float(
-        #     'Emission', ppConfig.emission, 0.0, 64.0)
-        # if (ppConfig.emission != new_emission):
-        #     ppConfig.emission = new_emission
-        #     ppConfig.reset = True
-
         new_sigma_s = window.GUI.slider_float(
-            'Sigma_s', ppConfig.sigma_s, 0.0, 1.0)
+            'Scattering', ppConfig.sigma_s, 0.0, 1.0)
         if (ppConfig.sigma_s != new_sigma_s):
             ppConfig.sigma_s = new_sigma_s
             ppConfig.reset = True
-        
+
+        window.GUI.text("\n")
 
 
         window.GUI.text("Distance distribution:")

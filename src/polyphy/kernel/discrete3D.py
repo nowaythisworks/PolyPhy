@@ -265,6 +265,7 @@ class PPKernels_3DDiscrete(PPKernels):
         trace_field: ti.template(),
         sigma_t: PPTypes.FLOAT_GPU,
         vis_field: ti.template(),
+        pt_raw_vis_field: ti.template(),
         colormap: ti.template()):
 
             n_steps = ti.cast(n_ray_steps_f, PPTypes.INT_GPU)
@@ -332,7 +333,7 @@ class PPKernels_3DDiscrete(PPKernels):
                         t_current += ray_delta
 
                 # vis_field[x, y] = timath.pow(ray_L, 1.0/2.2)
-                vis_field[x, y] = ((ray_L[1] + ray_L[0]) * self.TexSamplePosition(ray_L[0], colormap, 50)) * 0.4 * exposure
+                vis_field[x, y] = pt_raw_vis_field[x,y] = ((ray_L[1] + ray_L[0]) * self.TexSamplePosition(ray_L[0], colormap, 50)) * 0.4 * exposure
             return
 
 
@@ -373,6 +374,7 @@ class PPKernels_3DDiscrete(PPKernels):
         trace_max: PPTypes.FLOAT_GPU,
         debug_mode: PPTypes.INT_GPU,
         vis_field: ti.template(),
+        pt_raw_vis_field: ti.template(),
         colormap: ti.template(),
         did_just_reset: PPTypes.INT_GPU):
 
@@ -482,15 +484,15 @@ class PPKernels_3DDiscrete(PPKernels):
                 if (accumulate_frame == True and did_just_reset == False):
                     if (path_L[0] != 0 and path_L[1] != 0 and path_L[2] != 0):
                         new_value = path_L / num_samples
-                        old_value = vis_field[x, y]
+                        old_value = pt_raw_vis_field[x, y]
 
                         weight = 1.0 / (accumulation_count + 1)
                         accumulatedPixel = old_value * (1 - weight) + new_value * weight
                         # average the path radiance between this and the previous frame
-                        vis_field[x, y] = accumulatedPixel
+                        pt_raw_vis_field[x, y] = accumulatedPixel
                 else:
                     # average the path radiance over the number of samples
-                    vis_field[x, y] = (path_L / num_samples)
-                
-                    vis_field[x, y] *= exposure
+                    pt_raw_vis_field[x, y] = (path_L / num_samples)
+
+                vis_field[x, y] = pt_raw_vis_field[x,y] * (exposure/2)
             return
