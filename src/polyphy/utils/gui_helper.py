@@ -45,7 +45,7 @@ class GuiHelper:
             'Exposure', ppConfig.exposure, 0.1, 10.0))
         if (ppConfig.exposure != new_exposure):
             ppConfig.exposure = new_exposure
-            ppConfig.reset = True
+            # ppConfig.reset = True
 
         new_deposit_vis = math.pow(10.0, window.GUI.slider_float(
             'Deposit Weight', math.log(ppConfig.deposit_vis, 10.0), -3.0, 3.0))
@@ -62,10 +62,10 @@ class GuiHelper:
         window.GUI.text("Ray Marcher Parameters:")
 
         new_n_ray_steps = window.GUI.slider_int(
-            'Samples', ppConfig.n_ray_steps, 1, 400)
+            'Max Steps', ppConfig.n_ray_steps, 1, 400)
         if (ppConfig.n_ray_steps != new_n_ray_steps):
             ppConfig.n_ray_steps = new_n_ray_steps
-            ppConfig.reset = True
+            # ppConfig.reset = True
 
         window.GUI.text("Path Tracer Parameters:")
 

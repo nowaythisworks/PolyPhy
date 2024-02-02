@@ -333,7 +333,7 @@ class PPKernels_3DDiscrete(PPKernels):
                         t_current += ray_delta
 
                 # vis_field[x, y] = timath.pow(ray_L, 1.0/2.2)
-                vis_field[x, y] = pt_raw_vis_field[x,y] = ((ray_L[1] + ray_L[0]) * self.TexSamplePosition(ray_L[0], colormap, 50)) * 0.4 * exposure
+                vis_field[x, y] = pt_raw_vis_field[x,y] = ((ray_L[1] + ray_L[0]) * self.TexSamplePosition(ray_L[0], colormap, 50)) * 0.2 * exposure
             return
 
 
@@ -375,8 +375,7 @@ class PPKernels_3DDiscrete(PPKernels):
         debug_mode: PPTypes.INT_GPU,
         vis_field: ti.template(),
         pt_raw_vis_field: ti.template(),
-        colormap: ti.template(),
-        did_just_reset: PPTypes.INT_GPU):
+        colormap: ti.template()):
 
             ## INITIAL CONSTANTS
             # the aspect ratio of the image
@@ -481,18 +480,15 @@ class PPKernels_3DDiscrete(PPKernels):
                             #     throughput *= new_albedo
                             throughput *= new_albedo #   <-- remove this line for russian roulette
 
-                if (accumulate_frame == True and did_just_reset == False):
-                    if (path_L[0] != 0 and path_L[1] != 0 and path_L[2] != 0):
-                        new_value = path_L / num_samples
-                        old_value = pt_raw_vis_field[x, y]
+                if (path_L[0] != 0 and path_L[1] != 0 and path_L[2] != 0):
+                    new_value = path_L / num_samples
+                    old_value = pt_raw_vis_field[x, y]
 
-                        weight = 1.0 / (accumulation_count + 1)
-                        accumulatedPixel = old_value * (1 - weight) + new_value * weight
-                        # average the path radiance between this and the previous frame
-                        pt_raw_vis_field[x, y] = accumulatedPixel
-                else:
-                    # average the path radiance over the number of samples
-                    pt_raw_vis_field[x, y] = (path_L / num_samples)
+                    weight = 1.0 / (accumulation_count + 1)
+                    accumulatedPixel = old_value * (1 - weight) + new_value * weight
+                    # average the path radiance between this and the previous frame
+                    pt_raw_vis_field[x, y] = accumulatedPixel
 
-                vis_field[x, y] = pt_raw_vis_field[x,y] * (exposure/2)
+                # post-processing exposure
+                vis_field[x, y] = (vis_field[x, y] * 0.9) + (0.1 * pt_raw_vis_field[x, y] * (exposure/2))
             return

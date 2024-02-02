@@ -347,8 +347,9 @@ class PPSimulation_3DDiscrete(PPSimulation):
                         ppInternalData.ppKernels.zero_field(ppInternalData.vis_field)
                         ppInternalData.ppKernels.zero_field(ppInternalData.pt_raw_vis_field)
 
-                    if (should_accumulate == False):
+                    if (should_accumulate == False or ppConfig.reset == True):
                     # if False:
+                        accumulate_count = 0 # reset PT accumulator progress whenever we switch to RM
                         ppInternalData.ppKernels.render_visualization_3D_raymarched(
                             ppConfig.trace_vis,
                             ppConfig.deposit_vis,
@@ -404,9 +405,11 @@ class PPSimulation_3DDiscrete(PPSimulation):
                             False, # debug_mode
                             ppInternalData.vis_field,
                             ppInternalData.pt_raw_vis_field,
-                            ppInternalData.colormap,
-                            ppConfig.reset)
-                        ppConfig.reset = False
+                            ppInternalData.colormap)
+                    ppConfig.reset = False
+
+
+
                 else:
                     ppInternalData.ppKernels.zero_field(ppInternalData.vis_field)
                     ppInternalData.ppKernels.zero_field(ppInternalData.pt_raw_vis_field)

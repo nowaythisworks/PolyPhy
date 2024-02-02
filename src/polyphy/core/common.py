@@ -98,7 +98,7 @@ class PPConfig:
     extinction = 0.5
     emission = 6.0
     sigma_s = 0.0
-    reset = False
+    reset = True
 
     # Input files
     input_file = ''
